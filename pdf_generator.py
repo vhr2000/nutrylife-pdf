@@ -1,873 +1,573 @@
 """
-Nutrylife — pdf_generator.py
-Genera el PDF personalizado a partir de los datos del formulario de Mimi.
-Versión adaptada para correr en Render.com (sin fuentes locales).
+Nutrylife — menu_engine.py
+Motor de menú: calcula gramajes exactos según macros del plan
+y arma el menú de 7 días con restricciones aplicadas.
 """
 
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import cm
-from reportlab.lib.colors import HexColor
-from reportlab.pdfgen import canvas
-from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, PageBreak,
-    Frame, PageTemplate, Table, TableStyle,
-    NextPageTemplate, HRFlowable
-)
-from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_JUSTIFY
-import os
-
 # ============================================================
-# PALETA
-# ============================================================
-VAINILLA       = HexColor("#F5EFE0")
-VAINILLA_SOFT  = HexColor("#FAF6EC")
-VAINILLA_DARK  = HexColor("#EBE5D5")
-PISTACHO       = HexColor("#A8C49A")
-PISTACHO_DARK  = HexColor("#6B8E5A")
-PISTACHO_SOFT  = HexColor("#D4E0CB")
-LILA           = HexColor("#B8A5D1")
-LILA_DARK      = HexColor("#7A5FA0")
-TEXTO          = HexColor("#3A3A3A")
-TEXTO_SOFT     = HexColor("#6B6B6B")
-TEXTO_MUY_SOFT = HexColor("#9A9A9A")
-LINEA          = HexColor("#D9D2C0")
-LINEA_SOFT     = HexColor("#E8E2D2")
-
-# ============================================================
-# FUENTES — fallback a Helvetica/Times (siempre disponibles)
-# Render no tiene Lora/Poppins instaladas, usamos las built-in
-# ============================================================
-FONT_SERIF      = "Times-Roman"
-FONT_SERIF_ITAL = "Times-Italic"
-FONT_SERIF_BOLD = "Times-Bold"
-FONT_SANS       = "Helvetica"
-FONT_SANS_BOLD  = "Helvetica-Bold"
-FONT_SANS_ITAL  = "Helvetica-Oblique"
-
-
-# ============================================================
-# ESTILOS
-# ============================================================
-def make_styles():
-    s = {}
-    s["body"] = ParagraphStyle(
-        "body", fontName=FONT_SANS, fontSize=10, leading=15,
-        textColor=TEXTO, alignment=TA_LEFT, spaceAfter=6,
-    )
-    s["body_just"] = ParagraphStyle(
-        "body_just", parent=s["body"], alignment=TA_JUSTIFY,
-    )
-    s["body_center"] = ParagraphStyle(
-        "body_center", parent=s["body"], alignment=TA_CENTER,
-    )
-    s["h1"] = ParagraphStyle(
-        "h1", fontName=FONT_SERIF_ITAL, fontSize=30, leading=34,
-        textColor=TEXTO, alignment=TA_LEFT, spaceAfter=8,
-    )
-    s["h2"] = ParagraphStyle(
-        "h2", fontName=FONT_SERIF, fontSize=16, leading=20,
-        textColor=TEXTO, alignment=TA_LEFT, spaceAfter=6,
-    )
-    s["h3"] = ParagraphStyle(
-        "h3", fontName=FONT_SANS_BOLD, fontSize=11, leading=14,
-        textColor=TEXTO, alignment=TA_LEFT, spaceAfter=4,
-    )
-    s["eyebrow"] = ParagraphStyle(
-        "eyebrow", fontName=FONT_SANS, fontSize=8, leading=11,
-        textColor=LILA_DARK, alignment=TA_LEFT, spaceAfter=4,
-    )
-    s["subtitle"] = ParagraphStyle(
-        "subtitle", fontName=FONT_SERIF_ITAL, fontSize=10, leading=14,
-        textColor=TEXTO_SOFT, alignment=TA_LEFT, spaceAfter=8,
-    )
-    s["label"] = ParagraphStyle(
-        "label", fontName=FONT_SANS, fontSize=8, leading=11,
-        textColor=TEXTO_SOFT, alignment=TA_LEFT, spaceAfter=2,
-    )
-    s["metric"] = ParagraphStyle(
-        "metric", fontName=FONT_SERIF_ITAL, fontSize=28, leading=32,
-        textColor=TEXTO, alignment=TA_LEFT,
-    )
-    s["small"] = ParagraphStyle(
-        "small", fontName=FONT_SANS, fontSize=8, leading=11,
-        textColor=TEXTO_MUY_SOFT, alignment=TA_LEFT,
-    )
-    s["italic"] = ParagraphStyle(
-        "italic", fontName=FONT_SERIF_ITAL, fontSize=10, leading=15,
-        textColor=TEXTO, alignment=TA_LEFT, spaceAfter=6,
-    )
-    s["italic_center"] = ParagraphStyle(
-        "italic_center", parent=s["italic"], alignment=TA_CENTER,
-    )
-    s["quote"] = ParagraphStyle(
-        "quote", fontName=FONT_SERIF_ITAL, fontSize=12, leading=18,
-        textColor=TEXTO, alignment=TA_CENTER, spaceBefore=8, spaceAfter=8,
-    )
-    return s
-
-
-# ============================================================
-# DECORACIÓN DE PÁGINAS
-# ============================================================
-def draw_cover_bg(c, doc):
-    w, h = A4
-    c.setFillColor(VAINILLA)
-    c.rect(0, 0, w, h, fill=1, stroke=0)
-    c.setFillColor(PISTACHO)
-    c.setFillAlpha(0.28)
-    c.rect(w * 0.5, h * 0.55, w * 0.5, h * 0.45, fill=1, stroke=0)
-    c.setFillColor(LILA)
-    c.setFillAlpha(0.22)
-    c.circle(w * 0.75, h * 0.78, 4.2 * cm, fill=1, stroke=0)
-    c.setFillAlpha(1)
-
-
-def draw_page_bg(c, doc):
-    w, h = A4
-    c.setFillColor(VAINILLA_SOFT)
-    c.rect(0, 0, w, h, fill=1, stroke=0)
-    # Decoración sutil
-    c.setFillColor(PISTACHO)
-    c.setFillAlpha(0.08)
-    c.circle(w + 0.5 * cm, h + 0.5 * cm, 4 * cm, fill=1, stroke=0)
-    c.setFillAlpha(1)
-    # Header
-    c.setStrokeColor(LINEA)
-    c.setLineWidth(0.5)
-    c.line(2 * cm, h - 1.5 * cm, w - 2 * cm, h - 1.5 * cm)
-    c.setFont(FONT_SANS, 7.5)
-    c.setFillColor(TEXTO_SOFT)
-    c.drawString(2 * cm, h - 1.1 * cm, "MYRIAM NUTRICIÓN")
-    c.drawRightString(w - 2 * cm, h - 1.1 * cm, f"— {doc.page:02d} —")
-    # Footer
-    c.line(2 * cm, 1.6 * cm, w - 2 * cm, 1.6 * cm)
-    c.setFont(FONT_SERIF_ITAL, 8)
-    c.setFillColor(LILA_DARK)
-    c.drawCentredString(w / 2, 1.1 * cm, "Logremos tu mejor versión")
-
-
-def draw_cierre_bg(c, doc):
-    w, h = A4
-    c.setFillColor(VAINILLA)
-    c.rect(0, 0, w, h, fill=1, stroke=0)
-    c.setStrokeColor(LILA)
-    c.setLineWidth(0.5)
-    c.circle(w / 2, h * 0.35, 1.2 * cm, stroke=1, fill=0)
-    c.setFillColor(PISTACHO_DARK)
-    c.circle(w / 2, h * 0.35, 0.08 * cm, fill=1, stroke=0)
-
-
-# ============================================================
-# HELPERS
-# ============================================================
-def chapter_header(numero, titulo, subtitulo=None):
-    elements = []
-    elements.append(Paragraph(
-        f"{numero:02d}",
-        ParagraphStyle("ch_num", fontName=FONT_SANS, fontSize=9,
-                       textColor=TEXTO_SOFT, alignment=TA_LEFT, spaceAfter=2)
-    ))
-    elements.append(Paragraph(
-        titulo,
-        ParagraphStyle("ch_h", fontName=FONT_SERIF_ITAL, fontSize=28,
-                       textColor=TEXTO, alignment=TA_LEFT, leading=32, spaceAfter=6)
-    ))
-    elements.append(HRFlowable(width="20%", thickness=0.5, color=LINEA,
-                               spaceBefore=2, spaceAfter=10, hAlign="LEFT"))
-    if subtitulo:
-        elements.append(Paragraph(
-            subtitulo,
-            ParagraphStyle("ch_sub", fontName=FONT_SERIF_ITAL, fontSize=9.5,
-                           textColor=TEXTO_SOFT, alignment=TA_LEFT, spaceAfter=16)
-        ))
-    return elements
-
-
-def caja(contenido, color_borde=PISTACHO, color_fondo=VAINILLA, ancho=17 * cm):
-    """Caja con borde izquierdo de color."""
-    data = [[Paragraph(contenido,
-                       ParagraphStyle("caja_p", fontName=FONT_SANS, fontSize=10,
-                                      textColor=TEXTO, leading=15))]]
-    t = Table(data, colWidths=[ancho])
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), color_fondo),
-        ("LINEBEFORE", (0, 0), (0, 0), 3, color_borde),
-        ("LEFTPADDING", (0, 0), (-1, -1), 14),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 14),
-        ("TOPPADDING", (0, 0), (-1, -1), 12),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
-    ]))
-    return t
-
-
-# ============================================================
-# SECCIONES FIJAS (siempre iguales, no dependen del paciente)
+# BASE DE DATOS NUTRICIONAL (valores estándar por 100g o unidad)
+# Fuente: USDA / Minsal Chile
+# Formato: { nombre: { kcal, prot, grasa, carbo, unidad, equiv } }
+# unidad: "100g" o "unidad"
+# equiv: gramos por unidad (si aplica)
 # ============================================================
 
-CLAVES = [
-    "Come cuando tengas hambre real.",
-    "Come hasta sentirte saciado, ni más ni menos.",
-    "No te peses todos los días. Tu progreso no cabe en una balanza.",
-    "Evita las colaciones. Si tu desayuno y almuerzo son completos, no las vas a necesitar.",
-    "No cuentes calorías. La calidad de lo que comes importa más que la cantidad.",
-    "No te compares con nadie. Tu proceso es tuyo y lo vas a lograr.",
-    "No le tengas miedo a las grasas ni a las proteínas. Témele al exceso de carbohidratos y a los alimentos procesados.",
-    "Desayuna lo suficiente para no necesitar nada a media mañana.",
-    "Almuerza lo suficiente para no necesitar nada a media tarde.",
-    "Hidrátate bien: agua con o sin gas, infusiones, té, café, mate.",
-    "Toma tu vitamina C con el desayuno, todos los días.",
-    "Toma omega 3 todos los días.",
-    "Toma magnesio con la cena o antes de dormir.",
-    "Duerme al menos 8 horas. Apaga las pantallas una hora antes de acostarte.",
-    "Si cenas, hazlo al menos dos horas antes de dormir.",
-    "Si vas a hacer ejercicio, prioriza pesas, máquinas o el peso de tu propio cuerpo.",
-    "Toma sol 10 minutos al día. Camina sobre el pasto cuando puedas.",
-    "Confía en el proceso. Los cambios reales toman tiempo, pero llegan.",
-]
-
-SUPLEMENTOS_INFO = {
-    "magnesio": {
-        "nombre": "Magnesio Citrato",
-        "tagline": "el regulador del cuerpo",
-        "texto": (
-            "El magnesio interviene en más de 300 procesos del cuerpo. Es clave en la producción "
-            "de hormonas, la regulación del sistema inmune, el metabolismo, la pérdida de grasa "
-            "corporal, el crecimiento muscular, el sueño y el estado de ánimo."
-        ),
-        "sintomas": "Insomnio, ansiedad, migrañas, arritmias, presión alta, fatiga crónica, calambres, hipotiroidismo.",
-        "dosis": "400mg, 2 comprimidos al día.",
-        "horario": "1 en la mañana, 1 antes de dormir.",
-        "marca": "Pure Science Magnesio Citrato Quelado",
+ALIMENTOS = {
+    # ---- PROTEÍNAS ANIMALES ----
+    "pollo_pechuga": {
+        "nombre": "Pollo (pechuga)",
+        "kcal": 165, "prot": 31.0, "grasa": 3.6, "carbo": 0.0,
+        "unidad": "100g", "categoria": "Proteínas de tierra"
     },
-    "omega3": {
-        "nombre": "Omega 3",
-        "tagline": "antiinflamatorio celular",
-        "texto": (
-            "Los ácidos grasos esenciales son antiinflamatorios potentes. Mejoran la salud cerebral, "
-            "la memoria, el estado de ánimo, la calidad de la piel y el cabello. Apoyan el desarrollo "
-            "y mantención de la masa muscular."
-        ),
-        "sintomas": "Especialmente importante en ansiedad, depresión, déficit atencional y deportistas.",
-        "dosis": "700mg, 1 cápsula al día.",
-        "horario": "Con el desayuno o almuerzo.",
-        "marca": "My OmegaRed (incluye astaxantina + colina)",
+    "pollo_muslo": {
+        "nombre": "Pollo (muslo sin piel)",
+        "kcal": 177, "prot": 24.0, "grasa": 8.0, "carbo": 0.0,
+        "unidad": "100g", "categoria": "Proteínas de tierra"
     },
-    "vitamina_d": {
-        "nombre": "Vitamina D",
-        "tagline": "el sol que nos falta",
-        "texto": (
-            "En Chile, por nuestra latitud, prácticamente toda la población tiene déficit. "
-            "La vitamina D regula el sistema inmune, la salud ósea, el ánimo y la energía. "
-            "Es uno de los suplementos más importantes que puedes tomar."
-        ),
-        "sintomas": "Fatiga persistente, baja inmunidad, dolor en huesos, debilidad muscular, depresión leve.",
-        "dosis": "5.000 UI diarias durante 2 a 3 meses.",
-        "horario": "Con el desayuno (mejor absorción con grasa).",
-        "marca": "NOW Vitamin D-3 5000 IU",
+    "vacuno_magro": {
+        "nombre": "Vacuno (corte magro)",
+        "kcal": 215, "prot": 26.0, "grasa": 12.0, "carbo": 0.0,
+        "unidad": "100g", "categoria": "Proteínas de tierra"
     },
-    "vitamina_c": {
-        "nombre": "Vitamina C Liposomal",
-        "tagline": "antioxidante y reparador",
-        "texto": (
-            "Antioxidante potente, refuerza el sistema inmune, mejora la cicatrización y retrasa "
-            "el envejecimiento de la piel. La versión liposomal se absorbe mucho mejor que la "
-            "vitamina C convencional."
-        ),
-        "sintomas": "Anemia, hematomas frecuentes, mala cicatrización, envejecimiento prematuro de la piel.",
-        "dosis": "1 cápsula al día.",
-        "horario": "Con el desayuno.",
-        "marca": "Wellplus Vitamina C Plus Liposomal",
+    "cerdo_lomo": {
+        "nombre": "Cerdo (lomo)",
+        "kcal": 242, "prot": 27.0, "grasa": 14.0, "carbo": 0.0,
+        "unidad": "100g", "categoria": "Proteínas de tierra"
     },
-    "electrolitos": {
-        "nombre": "Electrolitos",
-        "tagline": "lo que el agua sola no repone",
-        "texto": (
-            "En una alimentación baja en carbohidratos, el cuerpo elimina más sodio, potasio "
-            "y magnesio. Reponer electrolitos previene los síntomas de adaptación. "
-            "Si seguimos un plan sin carbohidratos, este suplemento no es opcional."
-        ),
-        "sintomas": "Dolor de cabeza, fatiga, calambres, estreñimiento, neblina mental, ansiedad inexplicable.",
-        "dosis": "1 cucharadita de sal de mar en 500cc de agua con jugo de medio limón.",
-        "horario": "Durante el día, especialmente en la mañana.",
-        "marca": "ELEC-ViTaL o receta casera con sal de mar + limón",
+    "pavo_pechuga": {
+        "nombre": "Pavo (pechuga)",
+        "kcal": 135, "prot": 29.0, "grasa": 1.0, "carbo": 0.0,
+        "unidad": "100g", "categoria": "Proteínas de tierra"
+    },
+    "huevo": {
+        "nombre": "Huevo entero",
+        "kcal": 72, "prot": 6.0, "grasa": 5.0, "carbo": 0.4,
+        "unidad": "unidad", "equiv": 50, "categoria": "Proteínas de tierra"
+    },
+    "jamon_artesanal": {
+        "nombre": "Jamón artesanal",
+        "kcal": 145, "prot": 18.0, "grasa": 7.0, "carbo": 1.5,
+        "unidad": "100g", "categoria": "Proteínas de tierra"
+    },
+    # ---- PROTEÍNAS DEL MAR ----
+    "salmon": {
+        "nombre": "Salmón",
+        "kcal": 208, "prot": 20.0, "grasa": 13.0, "carbo": 0.0,
+        "unidad": "100g", "categoria": "Proteínas del mar"
+    },
+    "merluza": {
+        "nombre": "Merluza",
+        "kcal": 85, "prot": 18.0, "grasa": 1.2, "carbo": 0.0,
+        "unidad": "100g", "categoria": "Proteínas del mar"
+    },
+    "atun_agua": {
+        "nombre": "Atún en agua",
+        "kcal": 116, "prot": 25.5, "grasa": 1.0, "carbo": 0.0,
+        "unidad": "100g", "categoria": "Proteínas del mar"
+    },
+    "reineta": {
+        "nombre": "Reineta",
+        "kcal": 95, "prot": 19.0, "grasa": 2.0, "carbo": 0.0,
+        "unidad": "100g", "categoria": "Proteínas del mar"
+    },
+    "congrio": {
+        "nombre": "Congrio",
+        "kcal": 112, "prot": 19.0, "grasa": 3.5, "carbo": 0.0,
+        "unidad": "100g", "categoria": "Proteínas del mar"
+    },
+    "camarones": {
+        "nombre": "Camarones",
+        "kcal": 99, "prot": 20.0, "grasa": 1.7, "carbo": 0.9,
+        "unidad": "100g", "categoria": "Proteínas del mar"
+    },
+    "sardinas": {
+        "nombre": "Sardinas",
+        "kcal": 208, "prot": 24.6, "grasa": 11.5, "carbo": 0.0,
+        "unidad": "100g", "categoria": "Proteínas del mar"
+    },
+    # ---- LÁCTEOS Y QUESOS ----
+    "queso_philadelphia": {
+        "nombre": "Queso Philadelphia",
+        "kcal": 342, "prot": 6.0, "grasa": 33.0, "carbo": 4.0,
+        "unidad": "100g", "categoria": "Lácteos y quesos"
+    },
+    "queso_chacra": {
+        "nombre": "Queso chacra",
+        "kcal": 350, "prot": 22.0, "grasa": 28.0, "carbo": 2.0,
+        "unidad": "100g", "categoria": "Lácteos y quesos"
+    },
+    "queso_mantecoso": {
+        "nombre": "Queso mantecoso",
+        "kcal": 380, "prot": 20.0, "grasa": 32.0, "carbo": 1.5,
+        "unidad": "100g", "categoria": "Lácteos y quesos"
+    },
+    "quesillo": {
+        "nombre": "Quesillo",
+        "kcal": 98, "prot": 11.0, "grasa": 5.0, "carbo": 2.0,
+        "unidad": "100g", "categoria": "Lácteos y quesos"
+    },
+    "yogurt_natural": {
+        "nombre": "Yogurt natural entero",
+        "kcal": 61, "prot": 3.5, "grasa": 3.3, "carbo": 4.7,
+        "unidad": "100g", "categoria": "Lácteos y quesos"
+    },
+    # ---- GRASAS ----
+    "palta": {
+        "nombre": "Palta",
+        "kcal": 160, "prot": 2.0, "grasa": 15.0, "carbo": 9.0,
+        "unidad": "100g", "categoria": "Grasas naturales"
+    },
+    "aceite_oliva": {
+        "nombre": "Aceite de oliva",
+        "kcal": 884, "prot": 0.0, "grasa": 100.0, "carbo": 0.0,
+        "unidad": "100g", "categoria": "Grasas naturales"
+    },
+    "mantequilla": {
+        "nombre": "Mantequilla",
+        "kcal": 717, "prot": 0.9, "grasa": 81.0, "carbo": 0.1,
+        "unidad": "100g", "categoria": "Grasas naturales"
+    },
+    "almendras": {
+        "nombre": "Almendras",
+        "kcal": 579, "prot": 21.0, "grasa": 50.0, "carbo": 22.0,
+        "unidad": "100g", "categoria": "Frutos secos"
+    },
+    "nueces": {
+        "nombre": "Nueces",
+        "kcal": 654, "prot": 15.0, "grasa": 65.0, "carbo": 14.0,
+        "unidad": "100g", "categoria": "Frutos secos"
+    },
+    # ---- VERDURAS ----
+    "espinaca": {
+        "nombre": "Espinaca",
+        "kcal": 23, "prot": 2.9, "grasa": 0.4, "carbo": 3.6,
+        "unidad": "100g", "categoria": "Verduras"
+    },
+    "lechuga": {
+        "nombre": "Lechuga",
+        "kcal": 15, "prot": 1.4, "grasa": 0.2, "carbo": 2.9,
+        "unidad": "100g", "categoria": "Verduras"
+    },
+    "tomate": {
+        "nombre": "Tomate",
+        "kcal": 18, "prot": 0.9, "grasa": 0.2, "carbo": 3.9,
+        "unidad": "100g", "categoria": "Verduras"
+    },
+    "brocoli": {
+        "nombre": "Brócoli",
+        "kcal": 34, "prot": 2.8, "grasa": 0.4, "carbo": 6.6,
+        "unidad": "100g", "categoria": "Verduras"
+    },
+    "coliflor": {
+        "nombre": "Coliflor",
+        "kcal": 25, "prot": 1.9, "grasa": 0.3, "carbo": 5.0,
+        "unidad": "100g", "categoria": "Verduras"
+    },
+    "zapallito": {
+        "nombre": "Zapallito italiano",
+        "kcal": 17, "prot": 1.2, "grasa": 0.3, "carbo": 3.1,
+        "unidad": "100g", "categoria": "Verduras"
+    },
+    "pimiento": {
+        "nombre": "Pimiento rojo",
+        "kcal": 31, "prot": 1.0, "grasa": 0.3, "carbo": 6.0,
+        "unidad": "100g", "categoria": "Verduras"
+    },
+    "champinones": {
+        "nombre": "Champiñones",
+        "kcal": 22, "prot": 3.1, "grasa": 0.3, "carbo": 3.3,
+        "unidad": "100g", "categoria": "Verduras"
+    },
+    "esparragos": {
+        "nombre": "Espárragos",
+        "kcal": 20, "prot": 2.2, "grasa": 0.1, "carbo": 3.9,
+        "unidad": "100g", "categoria": "Verduras"
+    },
+    "pepino": {
+        "nombre": "Pepino",
+        "kcal": 16, "prot": 0.7, "grasa": 0.1, "carbo": 3.6,
+        "unidad": "100g", "categoria": "Verduras"
+    },
+    "cebolla": {
+        "nombre": "Cebolla",
+        "kcal": 40, "prot": 1.1, "grasa": 0.1, "carbo": 9.3,
+        "unidad": "100g", "categoria": "Verduras"
+    },
+    "apio": {
+        "nombre": "Apio",
+        "kcal": 16, "prot": 0.7, "grasa": 0.2, "carbo": 3.0,
+        "unidad": "100g", "categoria": "Verduras"
+    },
+    "rucula": {
+        "nombre": "Rúcula",
+        "kcal": 25, "prot": 2.6, "grasa": 0.7, "carbo": 3.7,
+        "unidad": "100g", "categoria": "Verduras"
+    },
+    "berenjena": {
+        "nombre": "Berenjena",
+        "kcal": 25, "prot": 1.0, "grasa": 0.2, "carbo": 5.9,
+        "unidad": "100g", "categoria": "Verduras"
+    },
+    # ---- FRUTAS ----
+    "limon": {
+        "nombre": "Limón",
+        "kcal": 29, "prot": 1.1, "grasa": 0.3, "carbo": 9.3,
+        "unidad": "100g", "categoria": "Frutas"
+    },
+    "frutilla": {
+        "nombre": "Frutilla",
+        "kcal": 32, "prot": 0.7, "grasa": 0.3, "carbo": 7.7,
+        "unidad": "100g", "categoria": "Frutas"
+    },
+    "arandano": {
+        "nombre": "Arándano",
+        "kcal": 57, "prot": 0.7, "grasa": 0.3, "carbo": 14.5,
+        "unidad": "100g", "categoria": "Frutas"
+    },
+    "frambuesa": {
+        "nombre": "Frambuesa",
+        "kcal": 52, "prot": 1.2, "grasa": 0.7, "carbo": 11.9,
+        "unidad": "100g", "categoria": "Frutas"
     },
 }
 
-DESAYUNOS = [
-    ("Omelette mediterráneo",
-     "3 huevos batidos con espinaca, champiñones y queso de cabra. Aceite de oliva, sal de mar, una pizca de cúrcuma."),
-    ("Bowl de palta y huevo",
-     "Media palta machacada con limón y sal sobre 2 rebanadas de pan low carb. 2 huevos pochados."),
-    ("Yogurt natural con berries",
-     "Yogurt entero sin azúcar con berries, almendras tostadas y chía. Café o infusión."),
-    ("Plato simple",
-     "150g de pollo desmenuzado o salmón ahumado, palta, tomate cherry y aceite de oliva."),
-    ("Batido proteico",
-     "1 medida proteína en polvo + leche de almendras + frambuesas + mantequilla de almendras. Máx. 2 veces/semana."),
-    ("Huevos revueltos con jamón",
-     "3 huevos revueltos con 2 láminas de jamón artesanal y queso mantecoso. Sin pan."),
-    ("Queso chacra con palta",
-     "100g de queso chacra, 2 huevos duros, ½ palta, tomate en rodajas y aceite de oliva."),
-    ("Tortilla de champiñones",
-     "Tortilla de 3 huevos con champiñones, jamón y queso philadelphia. Café sin azúcar."),
-]
 
-ALMUERZOS = [
-    ("Salmón al horno con espárragos",
-     "150g de salmón al horno con limón. Espárragos asados. Hojas verdes con aceite de oliva."),
-    ("Pollo al ajillo con coliflor",
-     "150g de pechuga al ajillo. Coliflor asada con cúrcuma. Ensalada de tomate y palta."),
-    ("Bowl de huevo y vegetales",
-     "3 huevos cocidos. Mix de hojas verdes, brócoli salteado, champiñones. Aceite de oliva y limón."),
-    ("Hamburguesas caseras",
-     "Hamburguesas de carne molida con zapallo italiano. Ensalada de pepino y palta."),
-    ("Pescado blanco al wok",
-     "150g de reineta o merluza al sartén. Mix de pimentón, zapallo italiano y brócoli salteados."),
-    ("Carne mechada con palta",
-     "150g de carne mechada. Palta, tomate, aceite de oliva y limón. Solo para almuerzo."),
-    ("Pavo plancha con ensalada",
-     "150g de pavo a la plancha. Rúcula, berros, tomate cherry, cebolla morada y aceite de oliva."),
-    ("Tímbal de salmón con palta",
-     "150g de salmón. Pimentón, cebolla, perejil. Servir sobre palta machacada con limón."),
+# ============================================================
+# MENÚ BASE DE 7 DÍAS
+# Cada comida tiene: nombre, ingredientes principales con key y gramos base
+# Los gramos base son para 100g de proteína/día — se escalan según el plan
+# ============================================================
+
+MENU_BASE = [
+    {
+        "dia": "Lunes",
+        "desayuno": {
+            "nombre": "Omelette mediterráneo",
+            "proteina_key": "huevo",
+            "proteina_unidades": 3,  # unidades, no gramos
+            "acompanamiento": "champiñones salteados, queso philadelphia",
+            "verduras": ["champinones"],
+            "grasa_extra": ["aceite_oliva"],
+        },
+        "almuerzo": {
+            "nombre": "Salmón al horno con espárragos",
+            "proteina_key": "salmon",
+            "verduras": ["esparragos", "tomate"],
+            "grasa_extra": ["aceite_oliva"],
+        },
+        "cena": {
+            "nombre": "Pollo salteado con pimientos",
+            "proteina_key": "pollo_pechuga",
+            "verduras": ["pimiento", "zapallito", "cebolla"],
+            "grasa_extra": ["aceite_oliva"],
+        },
+    },
+    {
+        "dia": "Martes",
+        "desayuno": {
+            "nombre": "Huevos revueltos con jamón y queso",
+            "proteina_key": "huevo",
+            "proteina_unidades": 3,
+            "acompanamiento": "jamón artesanal, queso mantecoso",
+            "verduras": [],
+            "grasa_extra": ["mantequilla"],
+        },
+        "almuerzo": {
+            "nombre": "Pollo al ajillo con coliflor",
+            "proteina_key": "pollo_pechuga",
+            "verduras": ["coliflor", "tomate"],
+            "grasa_extra": ["aceite_oliva"],
+        },
+        "cena": {
+            "nombre": "Pavo plancha con ensalada",
+            "proteina_key": "pavo_pechuga",
+            "verduras": ["rucula", "tomate", "cebolla"],
+            "grasa_extra": ["aceite_oliva"],
+        },
+    },
+    {
+        "dia": "Miércoles",
+        "desayuno": {
+            "nombre": "Bowl de palta y huevo pochado",
+            "proteina_key": "huevo",
+            "proteina_unidades": 3,
+            "acompanamiento": "palta, tomate cherry",
+            "verduras": ["tomate"],
+            "grasa_extra": ["palta"],
+        },
+        "almuerzo": {
+            "nombre": "Carne mechada con ensalada",
+            "proteina_key": "vacuno_magro",
+            "verduras": ["tomate", "cebolla", "pimiento"],
+            "grasa_extra": ["aceite_oliva", "palta"],
+        },
+        "cena": {
+            "nombre": "Tímbal de salmón con palta",
+            "proteina_key": "salmon",
+            "verduras": ["pimiento", "cebolla"],
+            "grasa_extra": ["palta", "aceite_oliva"],
+        },
+    },
+    {
+        "dia": "Jueves",
+        "desayuno": {
+            "nombre": "Tortilla de champiñones y queso",
+            "proteina_key": "huevo",
+            "proteina_unidades": 3,
+            "acompanamiento": "champiñones, queso philadelphia",
+            "verduras": ["champinones"],
+            "grasa_extra": ["aceite_oliva"],
+        },
+        "almuerzo": {
+            "nombre": "Merluza gratinada con espárragos",
+            "proteina_key": "merluza",
+            "verduras": ["esparragos", "tomate"],
+            "grasa_extra": ["mantequilla", "aceite_oliva"],
+        },
+        "cena": {
+            "nombre": "Pollo al horno con pimientos",
+            "proteina_key": "pollo_pechuga",
+            "verduras": ["pimiento", "zapallito", "tomate"],
+            "grasa_extra": ["aceite_oliva"],
+        },
+    },
+    {
+        "dia": "Viernes",
+        "desayuno": {
+            "nombre": "Queso chacra con palta y huevo duro",
+            "proteina_key": "huevo",
+            "proteina_unidades": 2,
+            "acompanamiento": "queso chacra, palta",
+            "verduras": ["tomate"],
+            "grasa_extra": ["palta"],
+        },
+        "almuerzo": {
+            "nombre": "Vacuno al horno con zapallito gratinado",
+            "proteina_key": "vacuno_magro",
+            "verduras": ["zapallito", "cebolla"],
+            "grasa_extra": ["mantequilla", "aceite_oliva"],
+        },
+        "cena": {
+            "nombre": "Atún con ensalada de tomate y palta",
+            "proteina_key": "atun_agua",
+            "verduras": ["tomate", "cebolla"],
+            "grasa_extra": ["palta", "aceite_oliva"],
+        },
+    },
+    {
+        "dia": "Sábado",
+        "desayuno": {
+            "nombre": "Omelette con pollo desmenuzado",
+            "proteina_key": "huevo",
+            "proteina_unidades": 2,
+            "acompanamiento": "pollo desmenuzado, palta, mayonesa",
+            "verduras": [],
+            "grasa_extra": ["palta"],
+        },
+        "almuerzo": {
+            "nombre": "Reineta al sartén con vegetales",
+            "proteina_key": "reineta",
+            "verduras": ["zapallito", "pimiento", "cebolla"],
+            "grasa_extra": ["aceite_oliva", "mantequilla"],
+        },
+        "cena": {
+            "nombre": "Tomates rellenos con quesillo y atún",
+            "proteina_key": "atun_agua",
+            "verduras": ["tomate"],
+            "grasa_extra": ["aceite_oliva", "quesillo"],
+        },
+    },
+    {
+        "dia": "Domingo",
+        "desayuno": {
+            "nombre": "Yogurt natural con berries y almendras",
+            "proteina_key": "yogurt_natural",
+            "acompanamiento": "berries, almendras, chía",
+            "verduras": [],
+            "grasa_extra": ["almendras"],
+        },
+        "almuerzo": {
+            "nombre": "Pollo al curry con zapallito",
+            "proteina_key": "pollo_pechuga",
+            "verduras": ["zapallito", "cebolla"],
+            "grasa_extra": ["aceite_oliva"],
+        },
+        "cena": {
+            "nombre": "Rolls de salmón en lámina de palta",
+            "proteina_key": "salmon",
+            "verduras": ["pepino"],
+            "grasa_extra": ["palta"],
+        },
+    },
 ]
 
 
 # ============================================================
-# FUNCIÓN PRINCIPAL
+# MOTOR DE CÁLCULO
 # ============================================================
 
-def generar_pdf_completo(datos: dict, output_path: str):
+def calcular_gramos_proteina(prot_key: str, prot_objetivo_g: float) -> dict:
     """
-    Genera el PDF personalizado con los datos del formulario de Mimi.
-
-    datos = {
-        'nombre': str,
-        'edad': str,
-        'fecha': str,
-        'peso': str,
-        'talla': str,
-        'grasa': str (opcional),
-        'foco': str,
-        'duracion': str,
-        'kcal': str,
-        'proteinas': str,
-        'carbos': str,
-        'grasas': str,
-        'version_plan': 'con_carbos' | 'sin_carbos',
-        'suplementos': list[str],
-        'restricciones': list[str],
-        'nota_personal': str,
-    }
+    Dado un alimento y el objetivo de proteína en gramos,
+    calcula cuántos gramos (o unidades) se necesitan y los macros resultantes.
     """
+    alimento = ALIMENTOS[prot_key]
+    prot_por_100g = alimento["prot"]
 
-    styles = make_styles()
-
-    doc = SimpleDocTemplate(
-        output_path,
-        pagesize=A4,
-        leftMargin=2 * cm,
-        rightMargin=2 * cm,
-        topMargin=2.5 * cm,
-        bottomMargin=2.2 * cm,
-        title=f"Plan Nutricional — {datos.get('nombre', 'Paciente')}",
-        author="Myriam Márquez García",
-    )
-
-    # Frames
-    cover_frame = Frame(2*cm, 2*cm, A4[0]-4*cm, A4[1]-4*cm,
-                        leftPadding=0, rightPadding=0,
-                        topPadding=0, bottomPadding=0, id="cover")
-    normal_frame = Frame(2*cm, 2.2*cm, A4[0]-4*cm, A4[1]-4.7*cm,
-                         leftPadding=0, rightPadding=0,
-                         topPadding=0, bottomPadding=0, id="normal")
-    cierre_frame = Frame(2*cm, 2*cm, A4[0]-4*cm, A4[1]-4*cm,
-                         leftPadding=0, rightPadding=0,
-                         topPadding=0, bottomPadding=0, id="cierre")
-
-    doc.addPageTemplates([
-        PageTemplate(id="cover",  frames=[cover_frame],  onPage=draw_cover_bg),
-        PageTemplate(id="normal", frames=[normal_frame], onPage=draw_page_bg),
-        PageTemplate(id="cierre", frames=[cierre_frame], onPage=draw_cierre_bg),
-    ])
-
-    story = []
-
-    # ----------------------------------------------------------
-    # PORTADA
-    # ----------------------------------------------------------
-    story.append(Spacer(1, 1.5*cm))
-
-    # Labels top
-    top = [[
-        Paragraph("NUTRICIÓN AVANZADA",
-                  ParagraphStyle("top1", fontName=FONT_SANS, fontSize=9, textColor=TEXTO)),
-        Paragraph("PLAN PERSONALIZADO",
-                  ParagraphStyle("top2", fontName=FONT_SANS, fontSize=9,
-                                 textColor=TEXTO, alignment=TA_CENTER))
-    ]]
-    tt = Table(top, colWidths=[8.5*cm, 8.5*cm])
-    tt.setStyle(TableStyle([
-        ("LEFTPADDING", (0,0), (-1,-1), 0),
-        ("RIGHTPADDING", (0,0), (-1,-1), 0),
-    ]))
-    story.append(tt)
-    story.append(Spacer(1, 10*cm))
-
-    story.append(Paragraph("Plan Nutricional",
-        ParagraphStyle("cov_h", fontName=FONT_SERIF_ITAL, fontSize=48,
-                       textColor=TEXTO, leading=52, alignment=TA_LEFT, spaceAfter=14)))
-
-    story.append(Spacer(1, 1.5*cm))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=LINEA,
-                             spaceBefore=0, spaceAfter=12))
-
-    # Datos del paciente en 3 columnas
-    nombre = datos.get("nombre", "—")
-    duracion = datos.get("duracion", "14 días")
-    fecha = datos.get("fecha", "")
-
-    cover_data = [[
-        [
-            Paragraph("PREPARADO PARA",
-                      ParagraphStyle("cl1", fontName=FONT_SANS, fontSize=7,
-                                     textColor=TEXTO_SOFT, spaceAfter=3, letterSpacing=1)),
-            Paragraph(nombre,
-                      ParagraphStyle("cv1", fontName=FONT_SANS_BOLD, fontSize=12, textColor=TEXTO))
-        ],
-        [
-            Paragraph("DURACIÓN",
-                      ParagraphStyle("cl2", fontName=FONT_SANS, fontSize=7,
-                                     textColor=TEXTO_SOFT, spaceAfter=3, letterSpacing=1)),
-            Paragraph(duracion,
-                      ParagraphStyle("cv2", fontName=FONT_SANS_BOLD, fontSize=12, textColor=TEXTO))
-        ],
-        [
-            Paragraph("FECHA DE INICIO",
-                      ParagraphStyle("cl3", fontName=FONT_SANS, fontSize=7,
-                                     textColor=TEXTO_SOFT, spaceAfter=3, letterSpacing=1)),
-            Paragraph(fecha if fecha else "—",
-                      ParagraphStyle("cv3", fontName=FONT_SANS_BOLD, fontSize=12, textColor=TEXTO))
-        ],
-    ]]
-    ct = Table(cover_data, colWidths=[5.5*cm, 5.5*cm, 6*cm])
-    ct.setStyle(TableStyle([
-        ("VALIGN", (0,0), (-1,-1), "TOP"),
-        ("LEFTPADDING", (0,0), (-1,-1), 0),
-        ("TOPPADDING", (0,0), (-1,-1), 12),
-        ("BOTTOMPADDING", (0,0), (-1,-1), 12),
-        ("LINEBELOW", (0,0), (-1,-1), 0.5, LINEA),
-    ]))
-    story.append(ct)
-    story.append(Spacer(1, 0.6*cm))
-    story.append(Paragraph("MYRIAM MÁRQUEZ GARCÍA — NUTRICIONISTA",
-        ParagraphStyle("dfin", fontName=FONT_SANS, fontSize=8,
-                       textColor=TEXTO_SOFT, letterSpacing=1.5)))
-
-    story.append(PageBreak())
-    story.append(NextPageTemplate("normal"))
-
-    # ----------------------------------------------------------
-    # SOBRE TI
-    # ----------------------------------------------------------
-    story.extend(chapter_header(1, "Sobre ti", "tu punto de partida"))
-
-    edad  = datos.get("edad", "—")
-    peso  = datos.get("peso", "—")
-    talla = datos.get("talla", "—")
-    grasa = datos.get("grasa", "")
-    foco  = datos.get("foco", "—")
-
-    datos_data = [[
-        [
-            Paragraph("DATOS", ParagraphStyle("dl", fontName=FONT_SANS, fontSize=8,
-                      textColor=TEXTO_SOFT, spaceAfter=8, letterSpacing=1.2)),
-            Paragraph(f"<b>{nombre}</b>",
-                      ParagraphStyle("dn", fontName=FONT_SANS, fontSize=10, textColor=TEXTO, spaceAfter=4)),
-            Paragraph(f"Edad · {edad} años",
-                      ParagraphStyle("dm1", fontName=FONT_SANS, fontSize=9, textColor=TEXTO_SOFT, spaceAfter=3)),
-            Paragraph(f"Foco · {foco}",
-                      ParagraphStyle("dm2", fontName=FONT_SANS, fontSize=9, textColor=TEXTO_SOFT)),
-        ],
-        [
-            Paragraph("EVALUACIÓN INICIAL",
-                      ParagraphStyle("el", fontName=FONT_SANS, fontSize=8,
-                                     textColor=TEXTO_SOFT, spaceAfter=10, letterSpacing=1.2)),
-            Table([[
-                [
-                    Paragraph(f"<font size='20'>{peso}</font>",
-                              ParagraphStyle("pv", fontName=FONT_SERIF_ITAL, fontSize=20,
-                                             textColor=TEXTO, leading=22)),
-                    Paragraph("kg / PESO",
-                              ParagraphStyle("pl", fontName=FONT_SANS, fontSize=7,
-                                             textColor=TEXTO_SOFT, letterSpacing=1))
-                ],
-                [
-                    Paragraph(f"<font size='20'>{talla}</font>",
-                              ParagraphStyle("tv", fontName=FONT_SERIF_ITAL, fontSize=20,
-                                             textColor=TEXTO, leading=22)),
-                    Paragraph("cm / TALLA",
-                              ParagraphStyle("tl", fontName=FONT_SANS, fontSize=7,
-                                             textColor=TEXTO_SOFT, letterSpacing=1))
-                ],
-            ]], colWidths=[3.5*cm, 4*cm],
-               style=TableStyle([
-                   ("VALIGN", (0,0), (-1,-1), "TOP"),
-                   ("LEFTPADDING", (0,0), (-1,-1), 0),
-                   ("BOTTOMPADDING", (0,0), (-1,-1), 8),
-               ])),
-        ]
-    ]]
-    dt = Table(datos_data, colWidths=[8*cm, 9*cm])
-    dt.setStyle(TableStyle([
-        ("VALIGN", (0,0), (-1,-1), "TOP"),
-        ("LEFTPADDING", (0,0), (-1,-1), 0),
-    ]))
-    story.append(dt)
-
-    story.append(PageBreak())
-
-    # ----------------------------------------------------------
-    # REQUERIMIENTOS NUTRICIONALES
-    # ----------------------------------------------------------
-    story.extend(chapter_header(2, "Tus requerimientos", "los números que orientan tu día"))
-
-    kcal     = datos.get("kcal", "—")
-    proteinas = datos.get("proteinas", "—")
-    carbos   = datos.get("carbos", "—")
-    grasas   = datos.get("grasas", "—")
-    version  = datos.get("version_plan", "con_carbos")
-    version_txt = "Low Carb Flexible" if version == "con_carbos" else "Keto / Sin carbohidratos"
-
-    macros_data = [[
-        [
-            Paragraph("PROTEÍNAS",
-                      ParagraphStyle("ml1", fontName=FONT_SANS_BOLD, fontSize=8,
-                                     textColor=LILA_DARK, spaceAfter=4, letterSpacing=1.2)),
-            Paragraph(f'<font size="36">{proteinas}</font><font size="14">g</font>',
-                      ParagraphStyle("mv1", fontName=FONT_SERIF_ITAL, fontSize=36,
-                                     textColor=TEXTO, leading=40, spaceAfter=4)),
-            Paragraph("base de cada comida",
-                      ParagraphStyle("md1", fontName=FONT_SERIF_ITAL, fontSize=8,
-                                     textColor=TEXTO_SOFT)),
-        ],
-        [
-            Paragraph("CARBOHIDRATOS",
-                      ParagraphStyle("ml2", fontName=FONT_SANS_BOLD, fontSize=8,
-                                     textColor=LILA_DARK, spaceAfter=4, letterSpacing=1.2)),
-            Paragraph(f'<font size="36">{carbos}</font><font size="14">g</font>',
-                      ParagraphStyle("mv2", fontName=FONT_SERIF_ITAL, fontSize=36,
-                                     textColor=TEXTO, leading=40, spaceAfter=4)),
-            Paragraph("estratégicos, post-entreno",
-                      ParagraphStyle("md2", fontName=FONT_SERIF_ITAL, fontSize=8,
-                                     textColor=TEXTO_SOFT)),
-        ],
-        [
-            Paragraph("GRASAS",
-                      ParagraphStyle("ml3", fontName=FONT_SANS_BOLD, fontSize=8,
-                                     textColor=LILA_DARK, spaceAfter=4, letterSpacing=1.2)),
-            Paragraph(f'<font size="36">{grasas}</font><font size="14">g</font>',
-                      ParagraphStyle("mv3", fontName=FONT_SERIF_ITAL, fontSize=36,
-                                     textColor=TEXTO, leading=40, spaceAfter=4)),
-            Paragraph("fuentes naturales",
-                      ParagraphStyle("md3", fontName=FONT_SERIF_ITAL, fontSize=8,
-                                     textColor=TEXTO_SOFT)),
-        ],
-    ]]
-    mt = Table(macros_data, colWidths=[5.6*cm, 5.6*cm, 5.6*cm])
-    mt.setStyle(TableStyle([
-        ("VALIGN", (0,0), (-1,-1), "TOP"),
-        ("LEFTPADDING", (0,0), (-1,-1), 0),
-        ("LINEAFTER", (0,0), (-2,-1), 0.5, LINEA),
-    ]))
-    story.append(mt)
-    story.append(Spacer(1, 0.5*cm))
-
-    extras_data = [[
-        [
-            Paragraph("CALORÍAS", ParagraphStyle("e1l", fontName=FONT_SANS, fontSize=8,
-                      textColor=TEXTO_SOFT, alignment=TA_CENTER, letterSpacing=1.5, spaceAfter=6)),
-            Paragraph(f"<font size='18'>{kcal}</font>",
-                      ParagraphStyle("e1v", fontName=FONT_SERIF_ITAL, fontSize=18,
-                                     textColor=TEXTO, alignment=TA_CENTER, spaceAfter=2)),
-            Paragraph("kcal / día",
-                      ParagraphStyle("e1u", fontName=FONT_SERIF_ITAL, fontSize=8,
-                                     textColor=TEXTO_SOFT, alignment=TA_CENTER)),
-        ],
-        [
-            Paragraph("VERSIÓN",
-                      ParagraphStyle("e2l", fontName=FONT_SANS, fontSize=8,
-                                     textColor=TEXTO_SOFT, alignment=TA_CENTER,
-                                     letterSpacing=1.5, spaceAfter=6)),
-            Paragraph(version_txt,
-                      ParagraphStyle("e2v", fontName=FONT_SERIF_ITAL, fontSize=11,
-                                     textColor=PISTACHO_DARK, alignment=TA_CENTER,
-                                     leading=14, spaceAfter=2)),
-        ],
-    ]]
-    et = Table(extras_data, colWidths=[8.5*cm, 8.5*cm])
-    et.setStyle(TableStyle([
-        ("VALIGN", (0,0), (-1,-1), "TOP"),
-        ("TOPPADDING", (0,0), (-1,-1), 12),
-        ("BOTTOMPADDING", (0,0), (-1,-1), 12),
-        ("LINEABOVE", (0,0), (-1,0), 0.5, LINEA),
-        ("LINEBELOW", (0,0), (-1,-1), 0.5, LINEA),
-    ]))
-    story.append(et)
-
-    story.append(PageBreak())
-
-    # ----------------------------------------------------------
-    # LAS CLAVES
-    # ----------------------------------------------------------
-    story.extend(chapter_header(3, "Las claves", "principios de 15 años de experiencia clínica"))
-    story.append(Paragraph(
-        "Estas no son reglas rígidas. Son la base sobre la que se construye todo lo demás.",
-        ParagraphStyle("cli", fontName=FONT_SANS, fontSize=9.5, textColor=TEXTO_SOFT,
-                       alignment=TA_LEFT, spaceAfter=14, leading=14)
-    ))
-
-    rows = []
-    for i in range(0, 18, 2):
-        def cell(num, text):
-            return [
-                Paragraph(f"{num:02d}",
-                          ParagraphStyle("cn", fontName=FONT_SERIF_ITAL, fontSize=16,
-                                         textColor=PISTACHO_DARK, leading=18)),
-                Paragraph(text,
-                          ParagraphStyle("ct", fontName=FONT_SANS, fontSize=9,
-                                         textColor=TEXTO, leading=13, spaceAfter=6))
-            ]
-        left_text  = CLAVES[i] if i < len(CLAVES) else ""
-        right_text = CLAVES[i+1] if (i+1) < len(CLAVES) else ""
-        rows.append([cell(i+1, left_text), cell(i+2, right_text) if right_text else [Paragraph("", styles["body"])]])
-
-    t = Table(rows, colWidths=[8.5*cm, 8.5*cm])
-    t.setStyle(TableStyle([
-        ("VALIGN", (0,0), (-1,-1), "TOP"),
-        ("LEFTPADDING", (0,0), (-1,-1), 4),
-        ("RIGHTPADDING", (0,0), (-1,-1), 10),
-        ("TOPPADDING", (0,0), (-1,-1), 3),
-        ("BOTTOMPADDING", (0,0), (-1,-1), 3),
-    ]))
-    story.append(t)
-    story.append(PageBreak())
-
-    # ----------------------------------------------------------
-    # DESAYUNOS
-    # ----------------------------------------------------------
-    story.extend(chapter_header(4, "Tus desayunos", "ocho maneras de empezar el día"))
-
-    # Filtrar restricciones
-    restricciones = [r.lower() for r in datos.get("restricciones", [])]
-
-    for i, (titulo, desc) in enumerate(DESAYUNOS, 1):
-        d_data = [[
-            Paragraph(f"{i:02d}",
-                      ParagraphStyle("dn", fontName=FONT_SERIF_ITAL, fontSize=16,
-                                     textColor=TEXTO_SOFT, leading=18)),
-            [
-                Paragraph(titulo,
-                          ParagraphStyle("dt", fontName=FONT_SANS_BOLD, fontSize=11,
-                                         textColor=TEXTO, spaceAfter=2)),
-                Paragraph(desc,
-                          ParagraphStyle("dd", fontName=FONT_SANS, fontSize=9,
-                                         textColor=TEXTO_SOFT, leading=13))
-            ]
-        ]]
-        dt2 = Table(d_data, colWidths=[1.5*cm, 15.5*cm])
-        dt2.setStyle(TableStyle([
-            ("VALIGN", (0,0), (-1,-1), "TOP"),
-            ("LEFTPADDING", (0,0), (-1,-1), 0),
-            ("TOPPADDING", (0,0), (-1,-1), 9),
-            ("BOTTOMPADDING", (0,0), (-1,-1), 9),
-            ("LINEBELOW", (0,0), (-1,-1), 0.3, LINEA_SOFT),
-        ]))
-        story.append(dt2)
-
-    story.append(PageBreak())
-
-    # ----------------------------------------------------------
-    # ALMUERZOS Y CENAS
-    # ----------------------------------------------------------
-    story.extend(chapter_header(5, "Tus almuerzos & cenas", "platos completos para el resto del día"))
-
-    # Nota de no carne roja en la noche
-    story.append(caja(
-        '<b>Recuerda:</b> Las opciones con carne roja son solo para el almuerzo. '
-        'Para la cena, prefiere pescado, pollo, pavo o huevos.',
-        color_borde=LILA, color_fondo=HexColor("#EFE6F5")
-    ))
-    story.append(Spacer(1, 0.4*cm))
-
-    for i, (titulo, desc) in enumerate(ALMUERZOS, 1):
-        d_data = [[
-            Paragraph(f"{i:02d}",
-                      ParagraphStyle("an", fontName=FONT_SERIF_ITAL, fontSize=16,
-                                     textColor=TEXTO_SOFT, leading=18)),
-            [
-                Paragraph(titulo,
-                          ParagraphStyle("at", fontName=FONT_SANS_BOLD, fontSize=11,
-                                         textColor=TEXTO, spaceAfter=2)),
-                Paragraph(desc,
-                          ParagraphStyle("ad", fontName=FONT_SANS, fontSize=9,
-                                         textColor=TEXTO_SOFT, leading=13))
-            ]
-        ]]
-        dt3 = Table(d_data, colWidths=[1.5*cm, 15.5*cm])
-        dt3.setStyle(TableStyle([
-            ("VALIGN", (0,0), (-1,-1), "TOP"),
-            ("LEFTPADDING", (0,0), (-1,-1), 0),
-            ("TOPPADDING", (0,0), (-1,-1), 9),
-            ("BOTTOMPADDING", (0,0), (-1,-1), 9),
-            ("LINEBELOW", (0,0), (-1,-1), 0.3, LINEA_SOFT),
-        ]))
-        story.append(dt3)
-
-    story.append(PageBreak())
-
-    # ----------------------------------------------------------
-    # NOTA PERSONAL (si la hay)
-    # ----------------------------------------------------------
-    nota_personal = datos.get("nota_personal", "").strip()
-    if nota_personal:
-        story.extend(chapter_header(6, "Para ti", "nota personal de Myriam"))
-        story.append(caja(
-            f'<i>"{nota_personal}"</i>',
-            color_borde=LILA, color_fondo=HexColor("#EFE6F5")
-        ))
-        story.append(PageBreak())
-        cap_supl = 7
+    if alimento["unidad"] == "unidad":
+        prot_por_unidad = prot_por_100g * alimento["equiv"] / 100
+        unidades = round(prot_objetivo_g / prot_por_unidad)
+        # Tope máximo razonable: 4 huevos en desayuno, 6 en otras comidas
+        unidades = max(1, min(unidades, 4))
+        gramos_total = unidades * alimento["equiv"]
+        factor = gramos_total / 100
+        return {
+            "cantidad": unidades,
+            "unidad": "unidades",
+            "gramos": gramos_total,
+            "kcal": round(alimento["kcal"] * factor),
+            "prot": round(alimento["prot"] * factor, 1),
+            "grasa": round(alimento["grasa"] * factor, 1),
+            "carbo": round(alimento["carbo"] * factor, 1),
+        }
     else:
-        cap_supl = 6
+        gramos = round(prot_objetivo_g / prot_por_100g * 100 / 25) * 25
+        gramos = max(50, gramos)
+        factor = gramos / 100
+        return {
+            "cantidad": gramos,
+            "unidad": "g",
+            "gramos": gramos,
+            "kcal": round(alimento["kcal"] * factor),
+            "prot": round(alimento["prot"] * factor, 1),
+            "grasa": round(alimento["grasa"] * factor, 1),
+            "carbo": round(alimento["carbo"] * factor, 1),
+        }
 
-    # ----------------------------------------------------------
-    # RESTRICCIONES (si las hay — alerta visible en el PDF)
-    # ----------------------------------------------------------
-    if restricciones:
-        story.extend(chapter_header(cap_supl, "Tu menú personalizado",
-                                    "ajustado a tus preferencias alimentarias"))
-        rest_str = ", ".join([r.capitalize() for r in restricciones])
-        story.append(caja(
-            f'<b>Alimentos excluidos de tu plan:</b> {rest_str}.<br/><br/>'
-            'Las opciones de desayuno, almuerzo y cena han sido adaptadas para '
-            'no incluir estos ingredientes.',
-            color_borde=PISTACHO, color_fondo=VAINILLA
-        ))
-        story.append(PageBreak())
-        cap_supl += 1
 
-    # ----------------------------------------------------------
-    # SUPLEMENTACIÓN
-    # ----------------------------------------------------------
-    suplementos_activos = datos.get("suplementos", list(SUPLEMENTOS_INFO.keys()))
-    story.extend(chapter_header(cap_supl, "Suplementación clínica",
-                                "lo que tu plato, por sí solo, no alcanza a aportar"))
-    story.append(Paragraph(
-        "Estos suplementos son parte del tratamiento. Las dosis se ajustan en cada control.",
-        ParagraphStyle("si", fontName=FONT_SANS, fontSize=9.5, textColor=TEXTO_SOFT,
-                       alignment=TA_LEFT, spaceAfter=16, leading=14)
-    ))
+def distribuir_proteina_dia(prot_total_g: float) -> tuple:
+    """
+    Distribuye la proteína del día en 3 comidas.
+    Desayuno: 25%, Almuerzo: 40%, Cena: 35%
+    """
+    desayuno = round(prot_total_g * 0.25)
+    almuerzo = round(prot_total_g * 0.40)
+    cena = prot_total_g - desayuno - almuerzo
+    return desayuno, almuerzo, cena
 
-    for key in suplementos_activos:
-        if key not in SUPLEMENTOS_INFO:
-            continue
-        s = SUPLEMENTOS_INFO[key]
 
-        # Header
-        h_data = [[
-            Paragraph(f"{list(suplementos_activos).index(key)+1:02d}",
-                      ParagraphStyle("sn", fontName=FONT_SERIF_ITAL, fontSize=24,
-                                     textColor=PISTACHO_DARK, leading=26)),
-            [
-                Paragraph(s["nombre"],
-                          ParagraphStyle("snom", fontName=FONT_SERIF_ITAL, fontSize=16,
-                                         textColor=TEXTO, leading=20, spaceAfter=2)),
-                Paragraph(f"<i>{s['tagline']}</i>",
-                          ParagraphStyle("stag", fontName=FONT_SERIF_ITAL, fontSize=9,
-                                         textColor=TEXTO_SOFT))
+def aplicar_restricciones(menu: list, restricciones: list) -> list:
+    """
+    Revisa el menú y reemplaza verduras restringidas por alternativas.
+    """
+    if not restricciones:
+        return menu
+
+    rest_lower = [r.lower() for r in restricciones]
+    VERDURAS_ALTERNATIVAS = ["tomate", "pimiento", "zapallito", "champinones", "cebolla"]
+
+    menu_limpio = []
+    for dia in menu:
+        dia_limpio = dict(dia)
+        for comida in ["desayuno", "almuerzo", "cena"]:
+            c = dict(dia[comida])
+            verduras_ok = []
+            for v in c.get("verduras", []):
+                nombre_v = ALIMENTOS.get(v, {}).get("nombre", v).lower()
+                restringida = any(r in nombre_v or nombre_v in r for r in rest_lower)
+                if not restringida and v not in verduras_ok:
+                    verduras_ok.append(v)
+                else:
+                    # Buscar alternativa que no esté ya en la lista
+                    for alt in VERDURAS_ALTERNATIVAS:
+                        alt_nombre = ALIMENTOS.get(alt, {}).get("nombre", alt).lower()
+                        no_restringida = not any(r in alt_nombre for r in rest_lower)
+                        if alt not in verduras_ok and no_restringida:
+                            verduras_ok.append(alt)
+                            break
+            c["verduras"] = verduras_ok
+            dia_limpio[comida] = c
+        menu_limpio.append(dia_limpio)
+    return menu_limpio
+
+
+def calcular_menu_completo(datos: dict) -> list:
+    """
+    Genera el menú de 7 días con macros calculados para cada comida.
+    """
+    prot_total = float(datos.get("proteinas", 120))
+    carbo_total = float(datos.get("carbos", 100))
+    grasa_total = float(datos.get("grasas", 75))
+    kcal_total = float(datos.get("kcal", 1580))
+    restricciones = datos.get("restricciones", [])
+
+    # Distribuir proteína del día
+    prot_desayuno, prot_almuerzo, prot_cena = distribuir_proteina_dia(prot_total)
+
+    # Aplicar restricciones al menú base
+    menu = aplicar_restricciones(MENU_BASE, restricciones)
+
+    resultado = []
+    for dia in menu:
+        dia_calculado = {"dia": dia["dia"], "comidas": []}
+
+        total_dia = {"kcal": 0, "prot": 0.0, "grasa": 0.0, "carbo": 0.0}
+
+        for comida_tipo, prot_obj, label in [
+            ("desayuno", prot_desayuno, "Desayuno"),
+            ("almuerzo", prot_almuerzo, "Almuerzo"),
+            ("cena", prot_cena, "Cena"),
+        ]:
+            c = dia[comida_tipo]
+            prot_key = c["proteina_key"]
+
+            # Calcular proteína
+            macros = calcular_gramos_proteina(prot_key, prot_obj)
+
+            # Construir descripción del plato
+            alimento = ALIMENTOS[prot_key]
+            if alimento["unidad"] == "unidad":
+                cantidad_str = f"{macros['cantidad']} {macros['unidad']}"
+            else:
+                cantidad_str = f"{macros['cantidad']}g"
+
+            # Verduras del plato
+            verduras_nombres = [
+                ALIMENTOS[v]["nombre"] for v in c.get("verduras", []) if v in ALIMENTOS
             ]
-        ]]
-        ht = Table(h_data, colWidths=[1.8*cm, 15.2*cm])
-        ht.setStyle(TableStyle([
-            ("VALIGN", (0,0), (-1,-1), "TOP"),
-            ("LEFTPADDING", (0,0), (-1,-1), 0),
-            ("BOTTOMPADDING", (0,0), (-1,-1), 6),
-        ]))
-        story.append(ht)
+            verduras_str = ", ".join(verduras_nombres) if verduras_nombres else ""
 
-        # Cuerpo
-        b_data = [[
-            [
-                Paragraph(s["texto"],
-                          ParagraphStyle("sb", fontName=FONT_SANS, fontSize=9,
-                                         textColor=TEXTO, leading=13,
-                                         alignment=TA_JUSTIFY, spaceAfter=6)),
-                Paragraph(f'<b>Si te falta:</b> <i>{s["sintomas"]}</i>',
-                          ParagraphStyle("ss", fontName=FONT_SANS, fontSize=8.5,
-                                         textColor=TEXTO_SOFT, leading=12))
-            ],
-            [
-                Paragraph("DOSIS", ParagraphStyle("dl", fontName=FONT_SANS, fontSize=7,
-                          textColor=PISTACHO_DARK, letterSpacing=1.2, spaceAfter=2)),
-                Paragraph(s["dosis"],
-                          ParagraphStyle("dv", fontName=FONT_SANS_BOLD, fontSize=9.5,
-                                         textColor=TEXTO, leading=13, spaceAfter=6)),
-                Paragraph("HORARIO", ParagraphStyle("hl", fontName=FONT_SANS, fontSize=7,
-                          textColor=PISTACHO_DARK, letterSpacing=1.2, spaceAfter=2)),
-                Paragraph(s["horario"],
-                          ParagraphStyle("hv", fontName=FONT_SANS, fontSize=9.5,
-                                         textColor=TEXTO, leading=13, spaceAfter=6)),
-                Paragraph("MARCA", ParagraphStyle("ml", fontName=FONT_SANS, fontSize=7,
-                          textColor=PISTACHO_DARK, letterSpacing=1.2, spaceAfter=2)),
-                Paragraph(s["marca"],
-                          ParagraphStyle("mv", fontName=FONT_SERIF_ITAL, fontSize=9.5,
-                                         textColor=LILA_DARK, leading=13))
-            ]
-        ]]
-        bt = Table(b_data, colWidths=[10.5*cm, 6.5*cm])
-        bt.setStyle(TableStyle([
-            ("VALIGN", (0,0), (-1,-1), "TOP"),
-            ("LEFTPADDING", (0,0), (0,0), 0),
-            ("RIGHTPADDING", (0,0), (0,0), 14),
-            ("LEFTPADDING", (1,0), (1,0), 14),
-            ("LINEBEFORE", (1,0), (1,0), 0.3, LINEA),
-        ]))
-        story.append(bt)
-        story.append(Spacer(1, 0.3*cm))
-        story.append(HRFlowable(width="100%", thickness=0.3, color=LINEA_SOFT,
-                                spaceAfter=0.3*cm))
+            # Acompañamiento extra
+            acomp = c.get("acompanamiento", "")
 
-    story.append(PageBreak())
+            # Descripción completa
+            desc_parts = [f"{cantidad_str} de {alimento['nombre'].lower()}"]
+            if acomp:
+                desc_parts.append(acomp)
+            if verduras_str:
+                desc_parts.append(verduras_str)
+            descripcion = " · ".join(desc_parts)
 
-    # ----------------------------------------------------------
-    # CIERRE
-    # ----------------------------------------------------------
-    story.append(NextPageTemplate("cierre"))
-    story.append(Spacer(1, 1.5*cm))
-    story.append(Paragraph("UN ÚLTIMO RECORDATORIO",
-        ParagraphStyle("clr", fontName=FONT_SANS, fontSize=7,
-                       textColor=TEXTO_SOFT, alignment=TA_LEFT,
-                       spaceAfter=10, letterSpacing=1.5)))
-    story.append(Paragraph(
-        "Lograremos<br/>tu mejor<br/>versión.",
-        ParagraphStyle("clh", fontName=FONT_SERIF_ITAL, fontSize=52,
-                       textColor=TEXTO, alignment=TA_LEFT, leading=58)
-    ))
-    story.append(Spacer(1, 3.5*cm))
-    story.append(HRFlowable(width="100%", thickness=0.3, color=LINEA,
-                             spaceBefore=10, spaceAfter=14))
-    story.append(Paragraph("SEGUIMOS EN CONTACTO",
-        ParagraphStyle("clc", fontName=FONT_SANS, fontSize=7,
-                       textColor=TEXTO_SOFT, alignment=TA_CENTER,
-                       spaceAfter=8, letterSpacing=1.5)))
-    story.append(Paragraph("Myriam Márquez García",
-        ParagraphStyle("cln", fontName=FONT_SERIF_ITAL, fontSize=16,
-                       textColor=TEXTO, alignment=TA_CENTER, spaceAfter=6)))
-    story.append(Paragraph(
-        "<i>nutricion.metodo@gmail.com<br/>WhatsApp: +56 9 9733 2001<br/>@nutrylife.cl</i>",
-        ParagraphStyle("clct", fontName=FONT_SERIF_ITAL, fontSize=10,
-                       textColor=TEXTO_SOFT, alignment=TA_CENTER, leading=15)
-    ))
+            # Totales acumulados del día
+            total_dia["kcal"] += macros["kcal"]
+            total_dia["prot"] += macros["prot"]
+            total_dia["grasa"] += macros["grasa"]
+            total_dia["carbo"] += macros["carbo"]
 
-    doc.build(story)
+            dia_calculado["comidas"].append({
+                "tipo": label,
+                "nombre": c["nombre"],
+                "descripcion": descripcion,
+                "macros": macros,
+            })
+
+        dia_calculado["total"] = {
+            "kcal": round(kcal_total),
+            "prot": round(prot_total, 1),
+            "grasa": round(grasa_total, 1),
+            "carbo": round(carbo_total, 1),
+        }
+
+        resultado.append(dia_calculado)
+
+    return resultado
