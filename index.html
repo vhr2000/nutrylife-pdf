@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generar Plan · Myriam Nutrición</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --vainilla: #F5EFE0;
+  --vainilla-soft: #FAF6EC;
+  --vainilla-dark: #EBE5D5;
+  --pistacho: #A8C49A;
+  --pistacho-dark: #6B8E5A;
+  --pistacho-soft: #D4E0CB;
+  --pistacho-very-soft: #E8EFE2;
+  --lila: #B8A5D1;
+  --lila-dark: #7A5FA0;
+  --lila-soft: #EFE6F5;
+  --texto: #3A3A3A;
+  --texto-soft: #6B6B6B;
+  --texto-muy-soft: #9A9A9A;
+  --linea: #D9D2C0;
+  --linea-soft: #E8E2D2;
+  --amber: #C99A4A;
+  --amber-soft: #F3E6CC;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--vainilla-soft);
+  color: var(--texto);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* ===== Layout ===== */
+.app {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 0 0 60px;
+  min-height: 100vh;
+}
+
+/* ===== Header ===== */
+.app-header {
+  padding: 24px 24px 20px;
+  border-bottom: 1px solid var(--linea-soft);
+  background: var(--vainilla-soft);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.header-brand {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: 15px;
+  color: var(--pistacho-dark);
+  margin-bottom: 6px;
+}
+
+.header-title {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: 26px;
+  color: var(--texto);
+  line-height: 1.15;
+  font-weight: 500;
+}
+
+.header-subtitle {
+  font-size: 13px;
+  color: var(--texto-soft);
+  margin-top: 4px;
+}
+
+/* ===== Secciones ===== */
+.section {
+  padding: 20px 24px 0;
+}
+
+.section-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--lila-dark);
+  font-weight: 600;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-eyebrow::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--linea-soft);
+}
+
+/* ===== Fields ===== */
+.field {
+  margin-bottom: 16px;
+}
+
+.field-label {
+  display: block;
+  font-size: 12px;
+  color: var(--texto-soft);
+  margin-bottom: 5px;
+  font-weight: 400;
+}
+
+.field-optional {
+  color: var(--texto-muy-soft);
+  font-size: 11px;
+  margin-left: 4px;
+}
+
+.field-input,
+.field-select,
+.field-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--vainilla);
+  border: 1px solid var(--linea);
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  color: var(--texto);
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color 0.2s;
+}
+
+.field-input:focus,
+.field-select:focus,
+.field-textarea:focus {
+  outline: none;
+  border-color: var(--pistacho-dark);
+  background: var(--vainilla-soft);
+}
+
+.field-input::placeholder,
+.field-textarea::placeholder {
+  color: var(--texto-muy-soft);
+  font-style: italic;
+}
+
+.field-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239A9A9A' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+.field-textarea {
+  min-height: 80px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.field-helper {
+  font-size: 11px;
+  color: var(--texto-muy-soft);
+  margin-top: 5px;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* ===== Field pair ===== */
+.field-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.field-trio {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+/* ===== Macros block ===== */
+.macros-block {
+  background: var(--vainilla);
+  border: 1px solid var(--linea);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.macros-title {
+  font-size: 12px;
+  color: var(--texto-soft);
+  margin-bottom: 14px;
+  font-family: 'Lora', serif;
+  font-style: italic;
+}
+
+.macro-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--linea-soft);
+}
+
+.macro-row:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.macro-label {
+  font-size: 13px;
+  color: var(--texto);
+  font-weight: 500;
+  flex: 1;
+}
+
+.macro-sublabel {
+  display: block;
+  font-size: 10px;
+  color: var(--texto-muy-soft);
+  font-weight: 400;
+  margin-top: 1px;
+}
+
+.macro-input {
+  width: 80px;
+  flex: none;
+  padding: 8px 10px;
+  background: var(--vainilla-soft);
+  border: 1px solid var(--linea);
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  color: var(--texto);
+  font-weight: 500;
+  text-align: right;
+  -webkit-appearance: none;
+  transition: border-color 0.2s;
+}
+
+.macro-input:focus {
+  outline: none;
+  border-color: var(--pistacho-dark);
+}
+
+.macro-unit {
+  font-size: 12px;
+  color: var(--texto-soft);
+  width: 30px;
+  text-align: left;
+  font-family: 'Lora', serif;
+  font-style: italic;
+}
+
+.macro-calculated {
+  font-size: 12px;
+  color: var(--texto-muy-soft);
+  font-style: italic;
+  text-align: right;
+  margin-top: 8px;
+}
+
+/* ===== Toggle plan version ===== */
+.plan-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.toggle-opt {
+  padding: 12px 10px;
+  border: 1px solid var(--linea);
+  border-radius: 12px;
+  background: var(--vainilla);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+
+.toggle-opt-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--texto);
+  margin-bottom: 2px;
+}
+
+.toggle-opt-desc {
+  font-size: 10px;
+  color: var(--texto-muy-soft);
+  font-style: italic;
+  font-family: 'Lora', serif;
+}
+
+.toggle-opt.selected {
+  border-color: var(--pistacho-dark);
+  background: var(--pistacho-very-soft);
+}
+
+.toggle-opt.selected .toggle-opt-title {
+  color: var(--pistacho-dark);
+}
+
+/* ===== Suplementos ===== */
+.supl-list {
+  margin-bottom: 16px;
+}
+
+.supl-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--linea-soft);
+  cursor: pointer;
+}
+
+.supl-item:last-child {
+  border-bottom: none;
+}
+
+.supl-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1.5px solid var(--linea);
+  background: var(--vainilla);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  font-size: 13px;
+  color: transparent;
+}
+
+.supl-item.checked .supl-check {
+  background: var(--pistacho-dark);
+  border-color: var(--pistacho-dark);
+  color: var(--vainilla-soft);
+}
+
+.supl-info {
+  flex: 1;
+}
+
+.supl-name {
+  font-size: 14px;
+  color: var(--texto);
+  font-weight: 500;
+}
+
+.supl-dose {
+  font-size: 11px;
+  color: var(--texto-soft);
+  font-family: 'Lora', serif;
+  font-style: italic;
+  margin-top: 1px;
+}
+
+.supl-item.checked .supl-name {
+  color: var(--pistacho-dark);
+}
+
+/* ===== Restricciones tags ===== */
+.restricciones-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  min-height: 30px;
+}
+
+.rest-tag {
+  background: var(--amber-soft);
+  color: var(--amber);
+  border: 1px solid var(--amber);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.rest-tag:hover {
+  background: var(--amber);
+  color: var(--vainilla);
+}
+
+.rest-tag-x {
+  font-size: 14px;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.rest-empty {
+  font-size: 12px;
+  color: var(--texto-muy-soft);
+  font-style: italic;
+  padding: 8px 0;
+}
+
+.rest-input-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.rest-text-input {
+  flex: 1;
+  padding: 10px 12px;
+  background: var(--vainilla);
+  border: 1px solid var(--linea);
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  color: var(--texto);
+  -webkit-appearance: none;
+}
+
+.rest-text-input:focus {
+  outline: none;
+  border-color: var(--pistacho-dark);
+}
+
+.rest-add-btn {
+  padding: 10px 14px;
+  background: var(--texto);
+  color: var(--vainilla);
+  border: none;
+  border-radius: 8px;
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+  font-weight: 300;
+}
+
+/* ===== Nota personal ===== */
+.nota-block {
+  background: var(--lila-soft);
+  border-left: 2px solid var(--lila);
+  border-radius: 0 10px 10px 0;
+  padding: 14px 16px;
+  margin-bottom: 4px;
+}
+
+.nota-block textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: 15px;
+  color: var(--texto);
+  line-height: 1.6;
+  resize: none;
+  min-height: 80px;
+}
+
+.nota-block textarea:focus {
+  outline: none;
+}
+
+.nota-block textarea::placeholder {
+  color: var(--lila);
+}
+
+/* ===== Alerta variedad ===== */
+.alert-variedad {
+  display: none;
+  background: var(--amber-soft);
+  border-left: 3px solid var(--amber);
+  border-radius: 0 10px 10px 0;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.alert-variedad.show {
+  display: block;
+}
+
+.alert-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--amber);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.alert-text {
+  font-size: 12px;
+  color: var(--texto);
+  line-height: 1.5;
+}
+
+/* ===== Resumen antes de generar ===== */
+.resumen {
+  background: var(--vainilla);
+  border: 1px solid var(--linea);
+  border-radius: 14px;
+  padding: 16px;
+  margin: 20px 24px 0;
+}
+
+.resumen-title {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: 16px;
+  color: var(--texto);
+  margin-bottom: 14px;
+  font-weight: 500;
+}
+
+.resumen-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--linea-soft);
+  font-size: 13px;
+}
+
+.resumen-row:last-child {
+  border-bottom: none;
+}
+
+.resumen-label {
+  color: var(--texto-soft);
+}
+
+.resumen-value {
+  color: var(--texto);
+  font-weight: 500;
+  text-align: right;
+  font-family: 'Lora', serif;
+  font-style: italic;
+}
+
+.resumen-value.pistacho {
+  color: var(--pistacho-dark);
+}
+
+/* ===== CTA ===== */
+.cta-section {
+  padding: 20px 24px 0;
+}
+
+.cta-btn {
+  width: 100%;
+  height: 54px;
+  background: var(--texto);
+  color: var(--vainilla);
+  border: none;
+  border-radius: 999px;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.2s;
+  letter-spacing: 0.02em;
+}
+
+.cta-btn:hover {
+  background: #2a2a2a;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px -6px rgba(58, 58, 58, 0.3);
+}
+
+.cta-btn:disabled {
+  background: var(--vainilla-dark);
+  color: var(--texto-muy-soft);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.cta-btn.loading {
+  background: var(--pistacho-dark);
+  pointer-events: none;
+}
+
+.cta-note {
+  text-align: center;
+  font-size: 12px;
+  color: var(--texto-muy-soft);
+  margin-top: 12px;
+  font-family: 'Lora', serif;
+  font-style: italic;
+}
+
+/* ===== Separador entre secciones ===== */
+.spacer {
+  height: 8px;
+}
+
+/* ===== Estado de éxito ===== */
+.success-screen {
+  display: none;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.success-screen.show {
+  display: block;
+}
+
+.success-check {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--pistacho-soft);
+  border: 1px solid var(--pistacho-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  margin: 0 auto 24px;
+}
+
+.success-title {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: 28px;
+  color: var(--texto);
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.success-text {
+  font-size: 14px;
+  color: var(--texto-soft);
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.success-name {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: 20px;
+  color: var(--pistacho-dark);
+  margin: 16px 0 28px;
+}
+
+.success-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.success-btn {
+  width: 100%;
+  height: 50px;
+  border-radius: 999px;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.success-btn.primary {
+  background: var(--texto);
+  color: var(--vainilla);
+}
+
+.success-btn.secondary {
+  background: var(--vainilla);
+  border: 1px solid var(--linea);
+  color: var(--texto);
+}
+
+.success-btn:hover {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 380px) {
+  .app-header, .section, .cta-section {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+  .resumen {
+    margin-left: 18px;
+    margin-right: 18px;
+  }
+  .header-title {
+    font-size: 22px;
+  }
+  .field-trio {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ===== HEADER ===== -->
+  <div class="app-header">
+    <div class="header-brand">Myriam Márquez Nutrición</div>
+    <h1 class="header-title">Generar plan nutricional</h1>
+    <p class="header-subtitle">Llena los datos y el PDF se genera automáticamente.</p>
+  </div>
+
+  <!-- ===== FORMULARIO PRINCIPAL ===== -->
+  <div id="form-view">
+
+    <!-- 01 · DATOS DEL PACIENTE -->
+    <div class="section">
+      <div class="spacer"></div>
+      <div class="section-eyebrow">01 · Paciente</div>
+
+      <div class="field">
+        <label class="field-label">Nombre completo</label>
+        <input type="text" class="field-input" id="nombre" placeholder="Nombre y apellido" autocomplete="off">
+      </div>
+
+      <div class="field-trio">
+        <div class="field">
+          <label class="field-label">Edad</label>
+          <input type="number" class="field-input" id="edad" placeholder="—" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label class="field-label">Sexo</label>
+          <select class="field-select" id="sexo">
+            <option value="femenino">Femenino</option>
+            <option value="masculino">Masculino</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Fecha de inicio</label>
+          <input type="date" class="field-input" id="fecha">
+        </div>
+      </div>
+
+      <div class="field-trio">
+        <div class="field">
+          <label class="field-label">Peso (kg)</label>
+          <input type="number" class="field-input" id="peso" placeholder="—" inputmode="decimal" step="0.1">
+        </div>
+        <div class="field">
+          <label class="field-label">Talla (cm)</label>
+          <input type="number" class="field-input" id="talla" placeholder="—" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label class="field-label">% grasa <span class="field-optional">opcional</span></label>
+          <input type="number" class="field-input" id="grasa" placeholder="—" inputmode="decimal" step="0.1">
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Foco clínico</label>
+        <input type="text" class="field-input" id="foco" placeholder="Recomposición corporal, bajar grasa, control glicemia...">
+      </div>
+
+      <div class="field">
+        <label class="field-label">Duración del plan</label>
+        <select class="field-select" id="duracion" onchange="toggleDuracionCustom(this)">
+          <option value="14 días">14 días</option>
+          <option value="30 días">30 días</option>
+          <option value="45 días">45 días</option>
+          <option value="60 días">60 días</option>
+          <option value="90 días">90 días</option>
+          <option value="otra">Otro...</option>
+        </select>
+      </div>
+
+      <div class="field" id="duracion-custom-field" style="display:none; margin-top:-8px;">
+        <input type="text" class="field-input" id="duracion-custom" placeholder="Ej: 60 días, 3 meses...">
+      </div>
+    </div>
+
+    <!-- 02 · PARÁMETROS NUTRICIONALES -->
+    <div class="section">
+      <div class="spacer"></div>
+      <div class="section-eyebrow">02 · Parámetros nutricionales</div>
+
+      <div class="macros-block">
+        <div class="macros-title">Ingresa los valores que calculaste para este paciente.</div>
+
+        <div class="macro-row">
+          <div class="macro-label">
+            Calorías
+            <span class="macro-sublabel">diarias</span>
+          </div>
+          <input type="text" class="macro-input" id="kcal" placeholder="0" inputmode="numeric" pattern="[0-9]*" oninput="calcGrasas()">
+          <span class="macro-unit">kcal</span>
+        </div>
+
+        <div class="macro-row">
+          <div class="macro-label">
+            Proteínas
+            <span class="macro-sublabel">totales/día</span>
+          </div>
+          <input type="text" class="macro-input" id="proteinas" placeholder="0" inputmode="numeric" pattern="[0-9]*" oninput="calcGrasas()">
+          <span class="macro-unit">g</span>
+        </div>
+
+        <div class="macro-row">
+          <div class="macro-label">
+            Carbohidratos
+            <span class="macro-sublabel">totales/día</span>
+          </div>
+          <input type="text" class="macro-input" id="carbos" placeholder="0" inputmode="numeric" pattern="[0-9]*" oninput="calcGrasas()">
+          <span class="macro-unit">g</span>
+        </div>
+
+        <div class="macro-row">
+          <div class="macro-label">
+            Grasas
+            <span class="macro-sublabel">calculado</span>
+          </div>
+          <input type="number" class="macro-input" id="grasas" placeholder="—" inputmode="numeric" readonly style="color: var(--texto-soft); background: var(--vainilla-dark);">
+          <span class="macro-unit">g</span>
+        </div>
+
+        <div class="macro-calculated" id="macro-check"></div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Versión del plan</label>
+      </div>
+      <div class="plan-toggle">
+        <div class="toggle-opt selected" onclick="selectPlan(this, 'con_carbos')">
+          <div class="toggle-opt-title">Con carbohidratos</div>
+          <div class="toggle-opt-desc">Low carb flexible</div>
+        </div>
+        <div class="toggle-opt" onclick="selectPlan(this, 'sin_carbos')">
+          <div class="toggle-opt-title">Sin carbohidratos</div>
+          <div class="toggle-opt-desc">Keto / diabético</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 03 · SUPLEMENTACIÓN -->
+    <div class="section">
+      <div class="spacer"></div>
+      <div class="section-eyebrow">03 · Suplementación</div>
+
+      <div class="supl-list">
+        <div class="supl-item checked" onclick="toggleSupl(this)" data-supl="magnesio">
+          <div class="supl-check">✓</div>
+          <div class="supl-info">
+            <div class="supl-name">Magnesio Citrato</div>
+            <div class="supl-dose">400mg · 2 comprimidos al día</div>
+          </div>
+        </div>
+        <div class="supl-item checked" onclick="toggleSupl(this)" data-supl="omega3">
+          <div class="supl-check">✓</div>
+          <div class="supl-info">
+            <div class="supl-name">Omega 3</div>
+            <div class="supl-dose">700mg · 1 cápsula al día</div>
+          </div>
+        </div>
+        <div class="supl-item checked" onclick="toggleSupl(this)" data-supl="vitamina_d">
+          <div class="supl-check">✓</div>
+          <div class="supl-info">
+            <div class="supl-name">Vitamina D</div>
+            <div class="supl-dose">5.000 UI · 2 a 3 meses</div>
+          </div>
+        </div>
+        <div class="supl-item checked" onclick="toggleSupl(this)" data-supl="vitamina_c">
+          <div class="supl-check">✓</div>
+          <div class="supl-info">
+            <div class="supl-name">Vitamina C Liposomal</div>
+            <div class="supl-dose">1 cápsula al día con el desayuno</div>
+          </div>
+        </div>
+        <div class="supl-item checked" onclick="toggleSupl(this)" data-supl="electrolitos">
+          <div class="supl-check">✓</div>
+          <div class="supl-info">
+            <div class="supl-name">Electrolitos</div>
+            <div class="supl-dose">Diario · agua con limón y sal de mar</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 04 · RESTRICCIONES -->
+    <div class="section">
+      <div class="spacer"></div>
+      <div class="section-eyebrow">04 · Restricciones alimentarias</div>
+
+      <div class="alert-variedad" id="alert-variedad">
+        <div class="alert-title">⚠ Variedad del menú comprometida</div>
+        <div class="alert-text" id="alert-variedad-text"></div>
+      </div>
+
+      <div class="restricciones-tags" id="tags-container">
+        <span class="rest-empty" id="tags-empty">Sin restricciones ingresadas.</span>
+      </div>
+
+      <div style="max-width:60%;">
+      <div class="rest-input-row">
+        <input type="text"
+               class="rest-text-input"
+               id="rest-input"
+               placeholder="Ej: coliflor, pepino..."
+               onkeydown="if(event.key==='Enter'){event.preventDefault();addRestriccion();}">
+        <button class="rest-add-btn" onclick="addRestriccion()">+</button>
+      </div>
+      </div>
+      <p class="field-helper" style="margin-top: 8px;">Escribe un alimento y presiona + para agregar. Toca el tag para eliminar.</p>
+    </div>
+
+    <!-- 05 · NOTA PERSONAL -->
+    <div class="section">
+      <div class="spacer"></div>
+      <div class="section-eyebrow">05 · Nota personal para el paciente</div>
+
+      <div class="nota-block">
+        <textarea id="nota-personal"
+                  placeholder="Escribe algo específico para este paciente. Aparecerá destacado en su plan..."
+                  oninput="autoResize(this)"></textarea>
+      </div>
+      <p class="field-helper">Esta nota aparece en la sección "Notas para tu caso" del menú.</p>
+    </div>
+
+    <!-- RESUMEN -->
+    <div class="resumen" id="resumen">
+      <div class="resumen-title">Resumen del plan</div>
+
+      <div class="resumen-row">
+        <span class="resumen-label">Paciente</span>
+        <span class="resumen-value" id="r-nombre">—</span>
+      </div>
+      <div class="resumen-row">
+        <span class="resumen-label">Calorías</span>
+        <span class="resumen-value" id="r-kcal">—</span>
+      </div>
+      <div class="resumen-row">
+        <span class="resumen-label">Macros</span>
+        <span class="resumen-value" id="r-macros">—</span>
+      </div>
+      <div class="resumen-row">
+        <span class="resumen-label">Versión</span>
+        <span class="resumen-value pistacho" id="r-version">Con carbohidratos</span>
+      </div>
+      <div class="resumen-row">
+        <span class="resumen-label">Suplementos</span>
+        <span class="resumen-value" id="r-supls">5 activos</span>
+      </div>
+      <div class="resumen-row">
+        <span class="resumen-label">Restricciones</span>
+        <span class="resumen-value" id="r-restricciones">Ninguna</span>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-section">
+      <div class="spacer"></div>
+      <button class="cta-btn" id="cta-btn" onclick="generarPDF()">
+        <span id="cta-text">Generar PDF</span>
+        <span id="cta-arrow">→</span>
+      </button>
+      <p class="cta-note">Se generarán dos archivos: versión desktop y versión móvil.</p>
+    </div>
+
+  </div>
+
+  <!-- ===== PANTALLA DE ÉXITO ===== -->
+  <div class="success-screen" id="success-view">
+    <div class="success-check">✓</div>
+    <h2 class="success-title">Plan generado.</h2>
+    <p class="success-text">El plan nutricional de</p>
+    <p class="success-name" id="success-name">—</p>
+    <p class="success-text">está listo para descargar y enviar.</p>
+
+    <div style="height: 28px;"></div>
+
+    <div class="success-btns">
+      <button class="success-btn primary">
+        ↓ &nbsp; Descargar PDF desktop
+      </button>
+      <button class="success-btn primary">
+        ↓ &nbsp; Descargar PDF móvil
+      </button>
+      <button class="success-btn secondary" onclick="resetForm()">
+        + &nbsp; Generar otro plan
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ===== Duración custom =====
+function toggleDuracionCustom(select) {
+  const customField = document.getElementById('duracion-custom-field');
+  const customInput = document.getElementById('duracion-custom');
+  if (select.value === 'otra') {
+    customField.style.display = 'block';
+    customInput.focus();
+  } else {
+    customField.style.display = 'none';
+    customInput.value = '';
+  }
+}
+
+function getDuracion() {
+  const select = document.getElementById('duracion');
+  if (select.value === 'otra') {
+    return document.getElementById('duracion-custom').value.trim() || 'Personalizada';
+  }
+  return select.value;
+}
+
+// ===== Estado global =====
+let planVersion = 'con_carbos';
+let restricciones = [];
+const LIMITE_RESTRICCIONES = 8;
+
+// ===== Calcular grasas automáticamente =====
+function calcGrasas() {
+  const kcal = parseFloat(document.getElementById('kcal').value) || 0;
+  const prot = parseFloat(document.getElementById('proteinas').value) || 0;
+  const carb = parseFloat(document.getElementById('carbos').value) || 0;
+
+  const grasasKcal = kcal - (prot * 4) - (carb * 4);
+  const grasasG = Math.round(grasasKcal / 9);
+
+  const grasasInput = document.getElementById('grasas');
+  const macroCheck = document.getElementById('macro-check');
+
+  if (kcal > 0 && prot > 0) {
+    if (grasasG > 0) {
+      grasasInput.value = grasasG;
+      macroCheck.textContent = `${prot * 4} kcal prot + ${carb * 4} kcal carb + ${grasasG * 9} kcal grasa = ${Math.round(prot*4 + carb*4 + grasasG*9)} kcal totales`;
+      macroCheck.style.color = 'var(--pistacho-dark)';
+    } else {
+      grasasInput.value = '';
+      macroCheck.textContent = '⚠ Revisa los valores: las grasas quedan negativas.';
+      macroCheck.style.color = 'var(--amber)';
+    }
+  } else {
+    grasasInput.value = '';
+    macroCheck.textContent = '';
+  }
+
+  updateResumen();
+}
+
+// ===== Versión del plan =====
+function selectPlan(el, version) {
+  planVersion = version;
+  document.querySelectorAll('.toggle-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('r-version').textContent =
+    version === 'con_carbos' ? 'Con carbohidratos' : 'Sin carbohidratos (Keto)';
+}
+
+// ===== Suplementos =====
+function toggleSupl(el) {
+  el.classList.toggle('checked');
+  updateResumen();
+}
+
+// ===== Restricciones =====
+function addRestriccion() {
+  const input = document.getElementById('rest-input');
+  const val = input.value.trim();
+  if (!val) return;
+
+  // Puede venir separado por comas
+  const items = val.split(',').map(s => s.trim()).filter(s => s.length > 0);
+  items.forEach(item => {
+    if (!restricciones.includes(item.toLowerCase())) {
+      restricciones.push(item.toLowerCase());
+    }
+  });
+
+  input.value = '';
+  renderTags();
+  checkVariedad();
+  updateResumen();
+}
+
+function removeRestriccion(item) {
+  restricciones = restricciones.filter(r => r !== item);
+  renderTags();
+  checkVariedad();
+  updateResumen();
+}
+
+function renderTags() {
+  const container = document.getElementById('tags-container');
+  const empty = document.getElementById('tags-empty');
+
+  // Limpiar tags existentes
+  container.querySelectorAll('.rest-tag').forEach(t => t.remove());
+
+  if (restricciones.length === 0) {
+    empty.style.display = 'block';
+  } else {
+    empty.style.display = 'none';
+    restricciones.forEach(item => {
+      const tag = document.createElement('span');
+      tag.className = 'rest-tag';
+      tag.innerHTML = `${item} <span class="rest-tag-x" onclick="event.stopPropagation(); removeRestriccion('${item}')">×</span>`;
+      container.appendChild(tag);
+    });
+  }
+}
+
+// Alerta de variedad
+const VERDURAS_DISPONIBLES = [
+  'tomate', 'palta', 'pimiento', 'cebolla', 'cebolla morada',
+  'zapallito italiano', 'champiñones', 'alcachofa', 'espárrago',
+  'porotos verdes', 'ajo', 'jengibre', 'brotes de alfalfa',
+  'brócoli', 'coliflor', 'lechuga', 'espinaca', 'rúcula',
+  'berros', 'acelga', 'apio', 'berenjena', 'repollo', 'pepino',
+  'nori', 'cochayuyo', 'col de bruselas', 'puerro', 'rábano'
+];
+
+function checkVariedad() {
+  const alert = document.getElementById('alert-variedad');
+  const alertText = document.getElementById('alert-variedad-text');
+
+  const excluidas = restricciones.filter(r =>
+    VERDURAS_DISPONIBLES.some(v => v.includes(r) || r.includes(v))
+  );
+
+  const restantes = VERDURAS_DISPONIBLES.filter(v =>
+    !restricciones.some(r => v.includes(r) || r.includes(v))
+  ).length;
+
+  if (excluidas.length >= 5 || restantes <= 8) {
+    alert.classList.add('show');
+    alertText.textContent = `El paciente excluye ${restricciones.length} alimentos. Las verduras viables se reducen a aprox. ${restantes}. El menú puede resultar monótono. Considera agregar una nota clínica.`;
+  } else {
+    alert.classList.remove('show');
+  }
+}
+
+// ===== Textarea auto-resize =====
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+// ===== Actualizar resumen en tiempo real =====
+function updateResumen() {
+  const nombre = document.getElementById('nombre').value.trim();
+  const kcal = document.getElementById('kcal').value;
+  const prot = document.getElementById('proteinas').value;
+  const carb = document.getElementById('carbos').value;
+  const grasas = document.getElementById('grasas').value;
+
+  document.getElementById('r-nombre').textContent = nombre || '—';
+  document.getElementById('r-kcal').textContent = kcal ? `${kcal} kcal/día` : '—';
+  document.getElementById('r-macros').textContent =
+    (prot && carb && grasas) ? `P ${prot}g · C ${carb}g · G ${grasas}g` : '—';
+
+  const suplsActivos = document.querySelectorAll('.supl-item.checked').length;
+  document.getElementById('r-supls').textContent = `${suplsActivos} activo${suplsActivos !== 1 ? 's' : ''}`;
+
+  document.getElementById('r-restricciones').textContent =
+    restricciones.length > 0 ? `${restricciones.length} alimento${restricciones.length !== 1 ? 's' : ''}` : 'Ninguna';
+}
+
+// Escuchar cambios en campos de texto para actualizar resumen
+['nombre', 'kcal', 'proteinas', 'carbos'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', updateResumen);
+});
+
+// ===== Generar PDF =====
+const API_URL = 'https://nutrylife-pdf.onrender.com';
+
+async function generarPDF() {
+  // Validación mínima
+  const nombre = document.getElementById('nombre').value.trim();
+  const kcal = document.getElementById('kcal').value;
+  const prot = document.getElementById('proteinas').value;
+
+  if (!nombre) {
+    alert('Falta el nombre del paciente.');
+    document.getElementById('nombre').focus();
+    return;
+  }
+
+  if (!kcal || !prot) {
+    alert('Faltan las calorías o las proteínas.');
+    document.getElementById('kcal').focus();
+    return;
+  }
+
+  // Loading
+  const btn = document.getElementById('cta-btn');
+  const texto = document.getElementById('cta-text');
+  const arrow = document.getElementById('cta-arrow');
+
+  btn.classList.add('loading');
+  texto.textContent = 'Generando...';
+  arrow.textContent = '⏳';
+
+  try {
+    const response = await fetch(`${API_URL}/generar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(getData())
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || 'Error del servidor');
+    }
+
+    // Descargar el PDF
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Plan_${nombre.replace(/ /g, '_')}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showSuccess(nombre);
+
+  } catch (error) {
+    alert(`Hubo un error generando el PDF: ${error.message}\n\nSi el servidor estaba dormido, espera 30 segundos y vuelve a intentar.`);
+  } finally {
+    btn.classList.remove('loading');
+    texto.textContent = 'Generar PDF';
+    arrow.textContent = '→';
+  }
+}
+
+function getData() {
+  return {
+    nombre: document.getElementById('nombre').value.trim(),
+    edad: document.getElementById('edad').value,
+    sexo: document.getElementById('sexo').value,
+    fecha: document.getElementById('fecha').value,
+    peso: document.getElementById('peso').value,
+    talla: document.getElementById('talla').value,
+    grasa: document.getElementById('grasa').value,
+    foco: document.getElementById('foco').value,
+    duracion: getDuracion(),
+    kcal: document.getElementById('kcal').value,
+    proteinas: document.getElementById('proteinas').value,
+    carbos: document.getElementById('carbos').value,
+    grasas: document.getElementById('grasas').value,
+    version_plan: planVersion,
+    suplementos: Array.from(document.querySelectorAll('.supl-item.checked')).map(el => el.dataset.supl),
+    restricciones: restricciones,
+    nota_personal: document.getElementById('nota-personal').value,
+  };
+}
+
+function showSuccess(nombre) {
+  document.getElementById('form-view').style.display = 'none';
+  const success = document.getElementById('success-view');
+  success.classList.add('show');
+  document.getElementById('success-name').textContent = nombre;
+  window.scrollTo(0, 0);
+}
+
+function resetForm() {
+  document.getElementById('form-view').style.display = 'block';
+  document.getElementById('success-view').classList.remove('show');
+  window.scrollTo(0, 0);
+}
+
+// ===== Inicializar fecha de hoy =====
+document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
+</script>
+
+</body>
+</html>
