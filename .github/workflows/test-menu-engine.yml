@@ -1,1 +1,38 @@
+name: Test Menu Engine
 
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "menu_engine.py"
+      - "test_sin_restricciones.py"
+      - "Data/20260525_Base_Platos_v1.xlsx"
+      - ".github/workflows/test-menu-engine.yml"
+
+jobs:
+  test-menu-engine:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas openpyxl
+
+      - name: List files
+        run: |
+          ls -la
+          echo "Data folder:"
+          ls -la Data || true
+
+      - name: Run menu engine test
+        run: |
+          python test_sin_restricciones.py
