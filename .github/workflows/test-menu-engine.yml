@@ -6,7 +6,7 @@ on:
     paths:
       - "menu_engine.py"
       - "test_sin_restricciones.py"
-      - "Data/20260525_Base_Platos_v1.xlsx"
+      - "data/20260525_Base_Platos_v1.xlsx"
       - ".github/workflows/test-menu-engine.yml"
 
 jobs:
@@ -30,8 +30,8 @@ jobs:
       - name: List files
         run: |
           ls -la
-          echo "Data folder:"
-          ls -la Data || true
+          echo "data folder:"
+          ls -la data || true
 
       - name: Run menu engine test
         run: |
