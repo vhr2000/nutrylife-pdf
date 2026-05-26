@@ -71,7 +71,7 @@ def obtener_tipo_desde_id(id_opcion: str) -> str:
 def cargar_base_platos(excel_path: str = None) -> Tuple[List[Dict[str, Any]], List[str]]:
     if excel_path is None:
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        excel_path = os.path.join(script_dir, "Data", "20260525_Base_Platos_v1.xlsx")
+        excel_path = os.path.join(script_dir, "data", "20260525_Base_Platos_v1.xlsx")
     
     if not os.path.exists(excel_path):
         raise FileNotFoundError(f"Base no encontrada: {excel_path}")
